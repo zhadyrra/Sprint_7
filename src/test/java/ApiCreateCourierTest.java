@@ -2,7 +2,6 @@ import com.github.javafaker.Faker;
 import io.qameta.allure.Step;
 import org.junit.Test;
 
-import java.time.LocalDateTime;
 import io.restassured.response.Response;
 
 import static io.restassured.RestAssured.given;
@@ -11,18 +10,8 @@ import static org.hamcrest.CoreMatchers.equalTo;
 
 public class ApiCreateCourierTest extends BaseApiTest {
 
-    @Step("create json data")
-    public CreateCourierSerialized createData() {
-        Faker faker = new Faker();
+    Faker faker = new Faker();
 
-        CreateCourierSerialized json = new CreateCourierSerialized(
-                faker.name().username(),
-                faker.internet().password(),
-                faker.name().firstName()
-        );
-
-        return json;
-    }
     @Step("Send GET request to /api/v1/courier")
     public Response makeRequest(CreateCourierSerialized json) {
         Response response = given()
@@ -42,13 +31,24 @@ public class ApiCreateCourierTest extends BaseApiTest {
 
     @Test
     public void createCourierSuccessTest() {
-        CreateCourierSerialized json = createData();
+        CreateCourierSerialized json = new CreateCourierSerialized(
+                "",
+                faker.internet().password(),
+                faker.name().firstName()
+        );
+
         Response response = makeRequest(json);
         checkCreatedStatus(response);
     }
+
     @Test
     public void createExistCourierTest() {
-        CreateCourierSerialized json = createData();
+        CreateCourierSerialized json = new CreateCourierSerialized(
+                faker.name().username(),
+                faker.internet().password(),
+                faker.name().firstName()
+        );
+
         Response response = makeRequest(json);
         checkCreatedStatus(response);
 
@@ -60,12 +60,13 @@ public class ApiCreateCourierTest extends BaseApiTest {
                 .and()
                 .statusCode(409);
     }
+
     @Test
     public void createCourierTestWithoutLogin() {
         CreateCourierSerialized json = new CreateCourierSerialized(
                 "",
-                "8778",
-                "hitachi"
+                faker.internet().password(),
+                faker.name().firstName()
         );
 
         Response response = makeRequest(json);
@@ -74,12 +75,13 @@ public class ApiCreateCourierTest extends BaseApiTest {
                 .and()
                 .statusCode(400);
     }
+
     @Test
     public void createCourierTestWithoutPassword() {
         CreateCourierSerialized json = new CreateCourierSerialized(
-                "jjjjj",
+                faker.name().username(),
                 "",
-                "hitachi"
+                faker.name().firstName()
         );
 
         Response response = makeRequest(json);
@@ -90,45 +92,64 @@ public class ApiCreateCourierTest extends BaseApiTest {
                 .and()
                 .statusCode(400);
     }
+
     @Test
     public void createCourierSuccessTestWCode() {
-        CreateCourierSerialized json = createData();
+        CreateCourierSerialized json = new CreateCourierSerialized(
+                faker.name().username(),
+                faker.internet().password(),
+                faker.name().firstName()
+        );
         Response response = makeRequest(json);
         checkCreatedStatus(response);
     }
+
     @Test
     public void createCourierSuccessTestWMessage() {
-        LocalDateTime localDateTime = LocalDateTime.now();
         CreateCourierSerialized json = new CreateCourierSerialized(
-                "saske191"+localDateTime,
-                "12345",
-                "hitachi"
+                faker.name().username(),
+                faker.internet().password(),
+                faker.name().firstName()
         );
         Response response = makeRequest(json);
         response.then()
                 .assertThat().body("ok", equalTo(true));
     }
+
     @Test
     public void createCourierTestWithoutDataRespondsErrorText() {
         CreateCourierSerialized json = new CreateCourierSerialized(
                 "",
-                "8778",
-                "hitachi"
+                faker.internet().password(),
+                faker.name().firstName()
         );
 
         Response response = makeRequest(json);
         response.then()
                 .assertThat().body("message", equalTo("Недостаточно данных для создания учетной записи"));
     }
+
     @Test
     public void createCourierTestWithExistLogin() {
+        String login = faker.name().username();
+
         CreateCourierSerialized json = new CreateCourierSerialized(
-                "saske1",
-                "123u45",
-                "hijtachi"
+                login,
+                faker.internet().password(),
+                faker.name().firstName()
         );
+
         Response response = makeRequest(json);
-        response.then()
+        checkCreatedStatus(response);
+
+        CreateCourierSerialized jsonSecond = new CreateCourierSerialized(
+                login,
+                faker.internet().password(),
+                faker.name().firstName()
+        );
+
+        Response responseSecond = makeRequest(jsonSecond);
+        responseSecond.then()
                 .assertThat().body("message", equalTo("Этот логин уже используется. Попробуйте другой."))
                 .and()
                 .statusCode(409);
