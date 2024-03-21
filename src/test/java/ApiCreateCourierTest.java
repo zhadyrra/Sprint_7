@@ -1,53 +1,59 @@
+import com.github.javafaker.Faker;
+import io.qameta.allure.Step;
 import org.junit.Test;
 
 import java.time.LocalDateTime;
+import io.restassured.response.Response;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.equalTo;
 
+
 public class ApiCreateCourierTest extends BaseApiTest {
-    @Test
-    public void createCourierSuccessTest() {
-        LocalDateTime localDateTime = LocalDateTime.now();
+
+    @Step("create json data")
+    public CreateCourierSerialized createData() {
+        Faker faker = new Faker();
+
         CreateCourierSerialized json = new CreateCourierSerialized(
-                "saske91"+localDateTime,
-                "12345",
-                "hitachi"
+                faker.name().username(),
+                faker.internet().password(),
+                faker.name().firstName()
         );
 
-        given()
+        return json;
+    }
+    @Step("Send GET request to /api/v1/courier")
+    public Response makeRequest(CreateCourierSerialized json) {
+        Response response = given()
                 .header("Content-type", "application/json") // заполни header
                 .and()
                 .body(json)
                 .when()
-                .post("/api/v1/courier") // отправь запрос на ручку
-                .then()
-                .statusCode(201);
+                .post("/api/v1/courier");
+
+        return response;
+    }
+
+    @Step("check status of /api/v1/courier")
+    public void checkCreatedStatus(Response response) {
+        response.then().statusCode(201);
+    }
+
+    @Test
+    public void createCourierSuccessTest() {
+        CreateCourierSerialized json = createData();
+        Response response = makeRequest(json);
+        checkCreatedStatus(response);
     }
     @Test
     public void createExistCourierTest() {
-        LocalDateTime localDateTime = LocalDateTime.now();
-        CreateCourierSerialized json = new CreateCourierSerialized(
-                "saske91"+ localDateTime,
-                "12345",
-                "hitachi"
-        );
-         given()
-                .header("Content-type", "application/json") // заполни header
-                .and()
-                .body(json)
-                .when()
-                .post("/api/v1/courier")
-                .then()
-                .statusCode(201);// отправь запрос на ручку
+        CreateCourierSerialized json = createData();
+        Response response = makeRequest(json);
+        checkCreatedStatus(response);
 
-        given()
-                .header("Content-type", "application/json") // заполни header
-                .and()
-                .body(json)
-                .when()
-                .post("/api/v1/courier") // отправь запрос на ручку
-                .then()
+        Response responseSecond = makeRequest(json);
+        responseSecond.then()
                 .assertThat().body("code", equalTo(409))
                 .and()
                 .assertThat().body("message", equalTo("Этот логин уже используется. Попробуйте другой."))
@@ -62,13 +68,8 @@ public class ApiCreateCourierTest extends BaseApiTest {
                 "hitachi"
         );
 
-        given()
-                .header("Content-type", "application/json") // заполни header
-                .and()
-                .body(json)
-                .when()
-                .post("/api/v1/courier") // отправь запрос на ручку
-                .then()
+        Response response = makeRequest(json);
+        response.then()
                 .assertThat().body("code", equalTo(400))
                 .and()
                 .statusCode(400);
@@ -81,13 +82,8 @@ public class ApiCreateCourierTest extends BaseApiTest {
                 "hitachi"
         );
 
-        given()
-                .header("Content-type", "application/json") // заполни header
-                .and()
-                .body(json)
-                .when()
-                .post("/api/v1/courier") // отправь запрос на ручку
-                .then()
+        Response response = makeRequest(json);
+        response.then()
                 .assertThat().body("code", equalTo(400))
                 .and()
                 .assertThat().body("message", equalTo("Недостаточно данных для создания учетной записи"))
@@ -96,20 +92,9 @@ public class ApiCreateCourierTest extends BaseApiTest {
     }
     @Test
     public void createCourierSuccessTestWCode() {
-        LocalDateTime localDateTime = LocalDateTime.now();
-        CreateCourierSerialized json = new CreateCourierSerialized(
-                "saske194"+localDateTime,
-                "12345",
-                "hitachi"
-        );
-        given()
-                .header("Content-type", "application/json") // заполни header
-                .and()
-                .body(json)
-                .when()
-                .post("/api/v1/courier") // отправь запрос на ручку
-                .then()
-                .statusCode(201);
+        CreateCourierSerialized json = createData();
+        Response response = makeRequest(json);
+        checkCreatedStatus(response);
     }
     @Test
     public void createCourierSuccessTestWMessage() {
@@ -119,13 +104,8 @@ public class ApiCreateCourierTest extends BaseApiTest {
                 "12345",
                 "hitachi"
         );
-        given()
-                .header("Content-type", "application/json") // заполни header
-                .and()
-                .body(json)
-                .when()
-                .post("/api/v1/courier") // отправь запрос на ручку
-                .then()
+        Response response = makeRequest(json);
+        response.then()
                 .assertThat().body("ok", equalTo(true));
     }
     @Test
@@ -136,13 +116,8 @@ public class ApiCreateCourierTest extends BaseApiTest {
                 "hitachi"
         );
 
-        given()
-                .header("Content-type", "application/json") // заполни header
-                .and()
-                .body(json)
-                .when()
-                .post("/api/v1/courier") // отправь запрос на ручку
-                .then()
+        Response response = makeRequest(json);
+        response.then()
                 .assertThat().body("message", equalTo("Недостаточно данных для создания учетной записи"));
     }
     @Test
@@ -152,14 +127,8 @@ public class ApiCreateCourierTest extends BaseApiTest {
                 "123u45",
                 "hijtachi"
         );
-
-        given()
-                .header("Content-type", "application/json") // заполни header
-                .and()
-                .body(json)
-                .when()
-                .post("/api/v1/courier") // отправь запрос на ручку
-                .then()
+        Response response = makeRequest(json);
+        response.then()
                 .assertThat().body("message", equalTo("Этот логин уже используется. Попробуйте другой."))
                 .and()
                 .statusCode(409);
